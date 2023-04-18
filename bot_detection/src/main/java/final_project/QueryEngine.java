@@ -94,7 +94,6 @@ public class QueryEngine {
         try {
             String fileName = "combined_data.csv";
             System.out.println("********Welcome To The Final Project!");
-            //String[] query13a = "BIRTHDAY BASH - The Latest #Music Release From Talented Artist @pb_hassan Listen Here".split(" ");
             QueryEngine objQueryEngine = new QueryEngine(fileName);
                 
             try {
