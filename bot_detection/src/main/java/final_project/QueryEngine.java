@@ -1,5 +1,6 @@
 package final_project;
 
+import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -17,6 +18,7 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.util.Version;
 import java.util.ArrayList;
 import java.util.List;
 import java.io.File;
@@ -25,10 +27,12 @@ import java.io.IOException;
 import java.util.Scanner;
 
 public class QueryEngine {
-    boolean indexExists=false;
+    private static final CharArraySet noStopWords = null;
+	boolean indexExists=false;
     String inputFilePath ="";
     static Directory index;
-    static StandardAnalyzer analyzer = new StandardAnalyzer();
+    //static StandardAnalyzer analyzer = new StandardAnalyzer();
+    static StandardAnalyzer analyzer = new StandardAnalyzer(noStopWords);
 
     public QueryEngine(String inputFile){
         inputFilePath =inputFile;
@@ -105,12 +109,11 @@ public class QueryEngine {
                   String data = myReader.nextLine();
                   if (data.length() > 3) {
 	                  String troll = data.substring(data.length()-1, data.length());
-	                  String[] query = normalizeQuery((data.substring(0, data.length()-1)).split(" "));
+	                  String[] query = normalizeQuery((data.substring(0, data.length()-2)).split(" "));
 	                  
 	                  if (query.length > 1 && (troll.equals("0") || troll.equals("1"))) {
-		                  String[] answer = runQ1_1(query);
+		                  String[] answer = runQuery(query);
 		                  if (answer[1] != null) {
-		                  //System.out.println("Content: "+ answer[0] + " Troll: " + answer[1] + " Actual: "+troll);
 		                  System.out.println("Query " + (int) (total+1.0));
 		                  System.out.println("Query = " + String.join(" ", query) + " (Troll Query: " + troll +
 		                		  ")\nTop Result = " + answer[0] + " (Troll Result: " +answer[1]+ ")\n");
@@ -138,7 +141,7 @@ public class QueryEngine {
         }
     }
 
-    public static String[] runQ1_1(String[] query) throws java.io.FileNotFoundException,java.io.IOException {
+    public static String[] runQuery(String[] query) throws java.io.FileNotFoundException,java.io.IOException {
 
         List<ResultClass>  ans=new ArrayList<ResultClass>();
         
@@ -177,10 +180,11 @@ public class QueryEngine {
 	private static String[] normalizeQuery(String[] query) {
 		List<String> lst = new ArrayList<String>();
 		for (int i = 0; i < query.length; i++) {
-			if (!query[i].contains("?") && 
-					!query[i].contains("/") &&
-					!query[i].contains("\\"))
-				lst.add(query[i]);
+			if (query[i].length() > 0)
+				if (!query[i].contains("?") && 
+						!query[i].contains("/") &&
+						!query[i].contains("\\"))
+					lst.add(query[i]);
 			}
 		String[] returnarr = new String[lst.size()];
 		for (int j = 0; j < lst.size(); j++)
