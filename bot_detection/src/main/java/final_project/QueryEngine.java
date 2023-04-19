@@ -142,8 +142,6 @@ public class QueryEngine {
     }
 
     public static String[] runQuery(String[] query) throws java.io.FileNotFoundException,java.io.IOException {
-
-        List<ResultClass>  ans=new ArrayList<ResultClass>();
         
         //creates query with query terms separated by a space
         
@@ -162,10 +160,6 @@ public class QueryEngine {
 	        for(int i=0;i<hits.length;++i) {
 	            int docId = hits[i].doc;
 	            Document d = searcher.doc(docId);
-	            ResultClass objResultClass= new ResultClass();
-                objResultClass.DocName = d;
-                objResultClass.docScore = hits[i].score;
-                ans.add(objResultClass);
                 top[0] = d.get("content"); 
                 top[1] = d.get("troll");
 	        }
