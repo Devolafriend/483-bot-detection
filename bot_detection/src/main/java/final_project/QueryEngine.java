@@ -171,6 +171,7 @@ public class QueryEngine {
 	        int hitsPerPage = 1;
 	        IndexReader reader = DirectoryReader.open(index);
 	        IndexSearcher searcher = new IndexSearcher(reader);
+			searcher.setSimilarity(new ClassicSimilarity());
 	        TopDocs docs = searcher.search(q, hitsPerPage);
 	        ScoreDoc[] hits = docs.scoreDocs;
 			
