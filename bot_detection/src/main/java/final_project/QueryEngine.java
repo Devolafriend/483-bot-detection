@@ -16,18 +16,24 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.similarities.ClassicSimilarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.util.Version;
 import java.util.ArrayList;
 import java.util.List;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Scanner;
 
 public class QueryEngine {
     private static final CharArraySet noStopWords = null;
+	private static final Path DATA_PATH = Paths.get("resources", "data");
 	boolean indexExists=false;
     String inputFilePath ="";
     static Directory index;
@@ -91,18 +97,29 @@ public class QueryEngine {
     	  w.addDocument(doc);
     	}
 
+	private File openDataFile(String filename) {
+		ClassLoader classLoader = getClass().getClassLoader();
+		File file = new File(classLoader.getResource(filename).getFile());
+		return file;
+	}
+
 	public static void main(String[] args ) {
 		float total = 0;
 		float correct = 0;
-		
+
+		System.out.println(DATA_PATH.toAbsolutePath());
+
+			
+
         try {
             String fileName = "combined_data.csv";
             System.out.println("********Welcome To The Final Project!");
             QueryEngine objQueryEngine = new QueryEngine(fileName);
+
                 
             try {
-                File myObj = new File("query.csv");
-                Scanner myReader = new Scanner(myObj);
+				File file = objQueryEngine.openDataFile("query.csv");
+                Scanner myReader = new Scanner(new BufferedReader(new FileReader(file)));
                 myReader.nextLine();
                 while (myReader.hasNextLine()) {
                 	
@@ -154,6 +171,7 @@ public class QueryEngine {
 	        int hitsPerPage = 1;
 	        IndexReader reader = DirectoryReader.open(index);
 	        IndexSearcher searcher = new IndexSearcher(reader);
+			searcher.setSimilarity(new ClassicSimilarity());
 	        TopDocs docs = searcher.search(q, hitsPerPage);
 	        ScoreDoc[] hits = docs.scoreDocs;
 			
