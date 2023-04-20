@@ -35,19 +35,16 @@ public class QueryEngine {
     private static final CharArraySet noStopWords = null;
 	private static final Path DATA_PATH = Paths.get("resources", "data");
 	boolean indexExists=false;
-    String inputFilePath ="";
     static Directory index;
     //static StandardAnalyzer analyzer = new StandardAnalyzer();
     static StandardAnalyzer analyzer = new StandardAnalyzer(noStopWords);
 
-    public QueryEngine(String inputFile){
-        inputFilePath =inputFile;
+    public QueryEngine(){
         index = buildIndex();
     }
 
     private Directory buildIndex() {
         //Get file from resources folder
-        
                 
         //initializes data structures for Lucene index
         
@@ -58,8 +55,11 @@ public class QueryEngine {
         IndexWriter w;
 		try {
 			w = new IndexWriter(index, config);
-			
-			File myObj = new File("combined_data.csv");
+
+			// get the path of the current workspace then concatenate onto that this file
+			String path = new File("").getAbsolutePath();
+			path = path + "/bot_detection/src/main/resources/combined_data.csv";
+			File myObj = new File("./bot_detection/src/main/resources/data_to_query.csv");
 	        try (Scanner inputScanner = new Scanner(new BufferedReader(new FileReader(myObj)))) {
 	        	
 	            while (inputScanner.hasNext()) {
@@ -104,66 +104,75 @@ public class QueryEngine {
 	}
 
 	public static void main(String[] args ) {
-		float total = 0;
-		float correct = 0;
 
-		System.out.println(DATA_PATH.toAbsolutePath());
-
-			
 
         try {
-            String fileName = "combined_data.csv";
             System.out.println("********Welcome To The Final Project!");
-            QueryEngine objQueryEngine = new QueryEngine(fileName);
+            QueryEngine objQueryEngine = new QueryEngine();
 
-                
-            try {
+			Scanner userScanner = new Scanner(System.in);
+
+            String userInput = "1";
+			while (userInput.equals("1") || userInput.equals("2")){
+				float total = 0;
+				float correct = 0;
+
+				System.out.println("Enter the following commands to choose a ranking method -\n" + 
+						"\tEnter 1 for tf-idf\n" + 
+						"\tEnter 2 for BM25\n" + 
+						"\tEnter anything else to exit");
+				userInput = userScanner.nextLine();
+				if (! (userInput.equals("1") || userInput.equals("2"))){
+					System.out.println("***************** Thanks for using the program! *****************\n");
+					userScanner.close();
+					break;
+				}
+
+
 				File file = objQueryEngine.openDataFile("query.csv");
-                Scanner myReader = new Scanner(new BufferedReader(new FileReader(file)));
-                myReader.nextLine();
-                while (myReader.hasNextLine()) {
-                	
-                  String data = myReader.nextLine();
-                  if (data.length() > 3) {
-	                  String troll = data.substring(data.length()-1, data.length());
-	                  String[] query = normalizeQuery((data.substring(0, data.length()-2)).split(" "));
-	                  
-	                  if (query.length > 1 && (troll.equals("0") || troll.equals("1"))) {
-		                  String[] answer = runQuery(query);
-		                  
-		                  System.out.println("Query " + (int) (total+1.0));
-		                  System.out.println("Query = " + String.join(" ", query) + " (Troll Query: " + troll +
-		                		  ")\nTop Result = " + answer[0] + " (Troll Result: " +answer[1]+ ")\n");
-		                  
-		                  
-		                  if (answer[1] != null) {
-			                  if (answer[1].equals(troll))
-			                	  correct +=1;
-				  }
-			          total +=1;        
-	                  }
-                  }
-                }
-                System.out.println("total = " + (int) total + " Correct = " + (int) correct);
-                System.out.println(correct/total);
-                myReader.close();
-              } catch (FileNotFoundException e) {
-                System.out.println("An error occurred.");
-                e.printStackTrace();
-              }
-            
+				Scanner myReader = new Scanner(new BufferedReader(new FileReader(file)));
+				myReader.nextLine();
+				while (myReader.hasNextLine()) {
+					
+					String data = myReader.nextLine();
+					if (data.length() > 3) {
+						String troll = data.substring(data.length()-1, data.length());
+						String[] query = normalizeQuery((data.substring(0, data.length()-2)).split(" "));
+						
+						if (query.length > 1 && (troll.equals("0") || troll.equals("1"))) {
+							total += 1;
+							String[] answer = runQuery(query, userInput);
+							
+							System.out.println("Query " + (int) (total));
+							System.out.println("Query = " + String.join(" ", query) + " (Troll Query: " + troll +
+									")\nTop Result = " + answer[0] + " (Troll Result: " +answer[1]+ ")\n");
+							
+							
+							if (answer[1] != null) {
+								if (answer[1].equals(troll))
+									correct +=1;
+							}      
+						}
+					}
+				}
+				System.out.println("total = " + (int) total + " Correct = " + (int) correct);
+				System.out.println(correct/total);
+				myReader.close();
+			}    
+            userScanner.close();
         }
         catch (Exception ex) {
             System.out.println(ex.getMessage());
+			System.out.println("An error occurred.");
+			ex.printStackTrace();
         }
     }
 
-    public static String[] runQuery(String[] query) throws java.io.FileNotFoundException,java.io.IOException {
+    public static String[] runQuery(String[] query, String rankingMethod) throws java.io.FileNotFoundException,java.io.IOException {
         
         //creates query with query terms separated by a space
         
         String[] top = new String[2];
-        
         
         String querystr = String.join(" ", query);
         try {
@@ -171,7 +180,11 @@ public class QueryEngine {
 	        int hitsPerPage = 1;
 	        IndexReader reader = DirectoryReader.open(index);
 	        IndexSearcher searcher = new IndexSearcher(reader);
-			searcher.setSimilarity(new ClassicSimilarity());
+		
+			if (rankingMethod.equals("1")){
+				searcher.setSimilarity(new ClassicSimilarity());
+			}
+
 	        TopDocs docs = searcher.search(q, hitsPerPage);
 	        ScoreDoc[] hits = docs.scoreDocs;
 			
