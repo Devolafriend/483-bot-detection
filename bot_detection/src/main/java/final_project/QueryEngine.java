@@ -130,17 +130,17 @@ public class QueryEngine {
 	                  
 	                  if (query.length > 1 && (troll.equals("0") || troll.equals("1"))) {
 		                  String[] answer = runQuery(query);
-		                  if (answer[1] != null) {
+		                  
 		                  System.out.println("Query " + (int) (total+1.0));
 		                  System.out.println("Query = " + String.join(" ", query) + " (Troll Query: " + troll +
 		                		  ")\nTop Result = " + answer[0] + " (Troll Result: " +answer[1]+ ")\n");
-		                  }
+		                  
 		                  
 		                  if (answer[1] != null) {
 			                  if (answer[1].equals(troll))
 			                	  correct +=1;
-			                  total +=1;
-			                  }
+				  }
+			          total +=1;        
 	                  }
                   }
                 }
@@ -193,9 +193,7 @@ public class QueryEngine {
 		List<String> lst = new ArrayList<String>();
 		for (int i = 0; i < query.length; i++) {
 			if (query[i].length() > 0)
-				if (!query[i].contains("?") && 
-						!query[i].contains("/") &&
-						!query[i].contains("\\"))
+				if (!(query[i].charAt(0)=='?'))
 					lst.add(query[i]);
 			}
 		String[] returnarr = new String[lst.size()];
