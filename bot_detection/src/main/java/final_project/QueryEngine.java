@@ -60,7 +60,7 @@ public class QueryEngine {
 			w = new IndexWriter(index, config);
 			
 			File myObj = new File("combined_data.csv");
-	        try (Scanner inputScanner = new Scanner(myObj)) {
+	        try (Scanner inputScanner = new Scanner(new BufferedReader(new FileReader(myObj)))) {
 	        	
 	            while (inputScanner.hasNext()) {
 	            	String input = inputScanner.nextLine();
