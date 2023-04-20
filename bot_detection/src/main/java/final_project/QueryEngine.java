@@ -193,9 +193,7 @@ public class QueryEngine {
 		List<String> lst = new ArrayList<String>();
 		for (int i = 0; i < query.length; i++) {
 			if (query[i].length() > 0)
-				if (!(query[i].charAt(0)=='?') && 
-						!query[i].contains("/") &&
-						!query[i].contains("\\"))
+				if (!(query[i].charAt(0)=='?'))
 					lst.add(query[i]);
 			}
 		String[] returnarr = new String[lst.size()];
