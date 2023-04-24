@@ -58,8 +58,8 @@ public class QueryEngine {
 
 			// get the path of the current workspace then concatenate onto that this file
 			String path = new File("").getAbsolutePath();
-			path = path + "/bot_detection/src/main/resources/combined_data.csv";
-			File myObj = new File("./bot_detection/src/main/resources/data_to_query.csv");
+			//path = path + "/bot_detection/src/main/resources/combined_data.csv";
+			File myObj = new File(getClass().getClassLoader().getResource("data_to_query.csv").getFile());
 	        try (Scanner inputScanner = new Scanner(new BufferedReader(new FileReader(myObj)))) {
 	        	
 	            while (inputScanner.hasNext()) {
