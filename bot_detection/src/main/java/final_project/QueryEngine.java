@@ -33,7 +33,6 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.ByteBuffersDirectory;
-import org.apache.lucene.util.Version;
 import java.util.ArrayList;
 import java.util.List;
 import java.io.BufferedReader;
@@ -72,10 +71,7 @@ public class QueryEngine {
     troll status (1 for troll, 0 for non-troll).
     */
     private Directory buildIndex() {
-        //Get file from resources folder
-                
         //initializes data structures for Lucene index
-        
         Directory index = new ByteBuffersDirectory();
 
         IndexWriterConfig config = new IndexWriterConfig(analyzer);
@@ -84,7 +80,7 @@ public class QueryEngine {
 		try {
 			w = new IndexWriter(index, config);
 
-			// get the path resource folder and find the data csv
+			//Get file from resources folder
 			File myObj = new File(getClass().getClassLoader().getResource("data_to_query.csv").getFile());
 	        try (Scanner inputScanner = new Scanner(new BufferedReader(new FileReader(myObj)))) {
 	        	
@@ -209,6 +205,8 @@ public class QueryEngine {
     /*
     This method runs a query for a single tweet.
     It will use either tf-idf or BM25 for scoring similarity and will return the top result.
+    We changed the hyper parameters for BM25 to k1 = 2 and b = 0 as this 
+    yielded the highest correct percentage
     */
     public static String[] runQuery(String[] query, String rankingMethod) throws java.io.FileNotFoundException,java.io.IOException {
         
@@ -224,7 +222,9 @@ public class QueryEngine {
 		
 			if (rankingMethod.equals("1")){
 				searcher.setSimilarity(new ClassicSimilarity());
-			}
+			}	
+			else
+			    searcher.setSimilarity(new BM25Similarity(2, 0));
 
 	        TopDocs docs = searcher.search(q, hitsPerPage);
 	        ScoreDoc[] hits = docs.scoreDocs;
