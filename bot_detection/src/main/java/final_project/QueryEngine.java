@@ -1,3 +1,17 @@
+/*
+File: QueryEngine.java
+Project: CSC 483 Final Project
+Authors: Zachary Lopez, Jaygee Galvez, Eric Simonson
+Description:
+This program uses Lucene to detect if a Twitter post is from a Russian
+troll. The data we use for the project is from Twitter and is comprised of
+20,000 verified Russian troll tweets and 20,000 tweets from a Twitter 
+repository with no attribution data (assumed to be non-trolls).
+Our program prompts the user to choose between tf-idf and BM25
+scoring. In it's current state, the program indexes stop words - 
+we explained the reasoning for this in the accompanying pdf.
+*/
+
 package final_project;
 
 import org.apache.lucene.analysis.CharArraySet;
@@ -17,9 +31,9 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
+import org.apache.lucene.search.similarities.BM25Similarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.ByteBuffersDirectory;
-import org.apache.lucene.util.Version;
 import java.util.ArrayList;
 import java.util.List;
 import java.io.BufferedReader;
@@ -31,23 +45,34 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Scanner;
 
+//Main class for the file
 public class QueryEngine {
-    private static final CharArraySet noStopWords = null;
-	private static final Path DATA_PATH = Paths.get("resources", "data");
-	boolean indexExists=false;
+    
+    private static final Path DATA_PATH = Paths.get("resources", "data");
+    boolean indexExists=false;
     static Directory index;
-    //static StandardAnalyzer analyzer = new StandardAnalyzer();
+    //list of stop words to be excluded from the index (we set this to none)
+    private static final CharArraySet noStopWords = null;
+    //the analyzer will include ALL stop words in the index
     static StandardAnalyzer analyzer = new StandardAnalyzer(noStopWords);
 
+	
+    /* Constructor for QueryEngine.
+    Does not accept any arguments.
+   */
     public QueryEngine(){
         index = buildIndex();
     }
 
+    /*
+    This method reads the contents of "data_to_query.csv", which contains
+    approximately 40,000 tweets from troll and non-troll accounts.
+    Each line is read and parsed. The first column of the csv is expected to
+    be the content of the tweet and the second column is expected to be the 
+    troll status (1 for troll, 0 for non-troll).
+    */
     private Directory buildIndex() {
-        //Get file from resources folder
-                
         //initializes data structures for Lucene index
-        
         Directory index = new ByteBuffersDirectory();
 
         IndexWriterConfig config = new IndexWriterConfig(analyzer);
@@ -56,10 +81,8 @@ public class QueryEngine {
 		try {
 			w = new IndexWriter(index, config);
 
-			// get the path of the current workspace then concatenate onto that this file
-			String path = new File("").getAbsolutePath();
-			path = path + "/bot_detection/src/main/resources/combined_data.csv";
-			File myObj = new File("./bot_detection/src/main/resources/data_to_query.csv");
+			//Get file from resources folder
+			File myObj = new File(getClass().getClassLoader().getResource("data_to_query.csv").getFile());
 	        try (Scanner inputScanner = new Scanner(new BufferedReader(new FileReader(myObj)))) {
 	        	
 	            while (inputScanner.hasNext()) {
@@ -68,11 +91,8 @@ public class QueryEngine {
 	            		String content = input.substring(0, input.length()-2);
 	            		String troll = input.substring(input.length()-1);
 	            		if (troll.equals("0") || troll.equals("1")) {
-	            			//System.out.println(content + " troll: " + troll);
-
-	            	
-	            	//adds docID and body of text to index
-	            	addDoc(w, content, troll);}
+					//adds tweet content and troll status
+					addDoc(w, content, troll);}
 	            		}
 	            }
 
@@ -84,12 +104,16 @@ public class QueryEngine {
 	        w.close();
 	        
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return index;
     }
 
+    /*
+    This method adds a document to Lucene's index.
+    The content of the tweet is stored as "content" and
+    the troll status is stored as "troll"
+    */
     private void addDoc(IndexWriter w, String content, String troll) throws IOException {
     	  Document doc = new Document();
     	  doc.add(new TextField("content", content, Field.Store.YES));
@@ -103,8 +127,19 @@ public class QueryEngine {
 		return file;
 	}
 
+	/*
+	Main method for the class.
+	Main first asks the user for an input. 1 for tf-idf scoring and 2 for BM25.
+	The program then opens query.csv and calls runQuery() for each line
+	of the csv.
+	runQuery() will return the top result from the query and this method
+	prints the result to the terminal. It will first show the queried tweet content
+	and troll status and the top result's content and troll status.
+	Once all lines from the csv have been queried, the total number of tweets,
+	total correct matched troll status, and percentage correct is printed to
+	the terminal.
+	*/
 	public static void main(String[] args ) {
-
 
         try {
             System.out.println("********Welcome To The Final Project!");
@@ -168,22 +203,29 @@ public class QueryEngine {
         }
     }
 
+    /*
+    This method runs a query for a single tweet.
+    It will use either tf-idf or BM25 for scoring similarity and will return the top result.
+    We changed the hyper parameters for BM25 to k1 = 2 and b = 0 as this 
+    yielded the highest correct percentage
+    */
     public static String[] runQuery(String[] query, String rankingMethod) throws java.io.FileNotFoundException,java.io.IOException {
         
-        //creates query with query terms separated by a space
-        
+        //creates query with query terms separated by a space        
         String[] top = new String[2];
         
         String querystr = String.join(" ", query);
         try {
-			Query q = new QueryParser("content", analyzer).parse(QueryParser.escape(querystr));
+		Query q = new QueryParser("content", analyzer).parse(QueryParser.escape(querystr));
 	        int hitsPerPage = 1;
 	        IndexReader reader = DirectoryReader.open(index);
 	        IndexSearcher searcher = new IndexSearcher(reader);
 		
 			if (rankingMethod.equals("1")){
 				searcher.setSimilarity(new ClassicSimilarity());
-			}
+			}	
+			else
+			    searcher.setSimilarity(new BM25Similarity(2, 0));
 
 	        TopDocs docs = searcher.search(q, hitsPerPage);
 	        ScoreDoc[] hits = docs.scoreDocs;
@@ -202,6 +244,14 @@ public class QueryEngine {
         return top;
     }
 
+	/*
+	This method is used to normalize the queries.
+	Currently, out normalization includes the Lucene default
+	normalization along with eliminating any tokens that
+	start with a question mark, as that's an indicator the 
+	tweet contains an emoji or other non-alphanumeric character.
+	We did not have a way to tokenize emojis and similar.
+	*/
 	private static String[] normalizeQuery(String[] query) {
 		List<String> lst = new ArrayList<String>();
 		for (int i = 0; i < query.length; i++) {
