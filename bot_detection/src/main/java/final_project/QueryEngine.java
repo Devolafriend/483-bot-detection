@@ -200,7 +200,7 @@ public class QueryEngine {
 
 
 			// set up the standardAnalyzer, queryEngine, along with the parameters to pass into queryController
-			int rankingMethod = Integer.parseInt(rankingMethodString) - 1; // shift down
+			int rankingMethod = Integer.parseInt(rankingMethodString); // shift down
 			int stopWord = Integer.parseInt(stopWordString);
 			int k = 0; 
 			float b = 0;
@@ -214,8 +214,12 @@ public class QueryEngine {
 			// set up stop words 
 			if (stopWord == 1){
 				changeStandardAnalyzer(true);
+				System.out.println("stop work = " + stopWord);
+				System.out.println("ranking method = " + rankingMethod);
 			} else {
 				changeStandardAnalyzer(false);
+				System.out.println("stop work = " + stopWord);
+				System.out.println("ranking method = " + rankingMethod);
 			}
 
 			
@@ -273,6 +277,7 @@ public class QueryEngine {
 			if (printQueriesInfo){
 				System.out.println("total = " + (int) total + " Correct = " + (int) correct);
 				System.out.println(resultPercentage);
+				System.out.println();
 			}
 			myReader.close();   
 		}
@@ -291,19 +296,26 @@ public class QueryEngine {
 	 * Returns: none
 	 */
 	public static void runAll(){
-		QueryEngine objQueryEngine = new QueryEngine();
 
+		QueryEngine objQueryEngine1 = new QueryEngine();
 		changeStandardAnalyzer(true);
-		float tfidfStopWords = queryController(objQueryEngine, 2, 0, 0, false);
-		float BM25DefStopWords = queryController(objQueryEngine, 3, 0, 0, false);
-		float BM25k4b25 = queryController(objQueryEngine, 3, 4, 0.25f, false);
-		float BM25k2b5 = queryController(objQueryEngine, 3, 2, 0.5f, false);
-		float BM25k2b25 = queryController(objQueryEngine, 3, 2, 0.25f, false);
-		float BM25k2b0 = queryController(objQueryEngine, 3, 2, 0, false);
+		float tfidfStopWords = queryController(objQueryEngine1, 2, 0, 0, false);
+		QueryEngine objQueryEngine2 = new QueryEngine();
+		float BM25DefStopWords = queryController(objQueryEngine2, 3, 0, 0, false);
+		QueryEngine objQueryEngine3 = new QueryEngine();
+		float BM25k4b25 = queryController(objQueryEngine3, 3, 4, 0.25f, false);
+		QueryEngine objQueryEngine4 = new QueryEngine();
+		float BM25k2b5 = queryController(objQueryEngine4, 3, 2, 0.5f, false);
+		QueryEngine objQueryEngine5 = new QueryEngine();
+		float BM25k2b25 = queryController(objQueryEngine5, 3, 2, 0.25f, false);
+		QueryEngine objQueryEngine6 = new QueryEngine();
+		float BM25k2b0 = queryController(objQueryEngine6, 3, 2, 0, false);
 
 		changeStandardAnalyzer(false);
-		float tfidfNoStopWords = queryController(objQueryEngine, 2, 0, 0, false);
-		float BM25DefNoStopWords = queryController(objQueryEngine, 3, 0, 0, false);
+		QueryEngine objQueryEngine7 = new QueryEngine();
+		float tfidfNoStopWords = queryController(objQueryEngine7, 2, 0, 0, false);
+		QueryEngine objQueryEngine8 = new QueryEngine();
+		float BM25DefNoStopWords = queryController(objQueryEngine8, 3, 0, 0, false);
 		
 		System.out.println("BM25(default hyperparameters) stop words indexed: \t" + BM25DefStopWords);
 		System.out.println("BM25(default hyperparameters) no stop words indexed: \t" + BM25DefNoStopWords);
