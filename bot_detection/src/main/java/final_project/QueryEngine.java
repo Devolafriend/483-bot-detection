@@ -43,6 +43,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.rmi.ConnectIOException;
 import java.util.Scanner;
 
 //Main class for the file
@@ -140,68 +141,192 @@ public class QueryEngine {
 	the terminal.
 	*/
 	public static void main(String[] args ) {
+		System.out.println("********Welcome To The Final Project!********");
+		Scanner userScanner = new Scanner(System.in);
 
-        try {
-            System.out.println("********Welcome To The Final Project!");
-            QueryEngine objQueryEngine = new QueryEngine();
+		String rankingMethodString = "";
+		runAll();
+		while(true){
+			System.out.println("Enter the following commands to choose a ranking method -\n" + 
+					"\tEnter 1 to redisplay summary of all ranking methods\n" + 
+					"\tEnter 2 for tf-idf\n" + 
+					"\tEnter 3 for BM25\n" +   
+					"\tEnter exit to exit");
+			
+					rankingMethodString = userScanner.nextLine();
+			
+			// check to see if we exit, display all, or had invalid input
+			if (rankingMethodString.equals("exit")){
+				break;
+			} 
+			else if (rankingMethodString.equals("1")){
+				runAll();
+				continue;
+			}
+			else if (!(rankingMethodString.equals("1") | rankingMethodString.equals("2") 
+					 | rankingMethodString.equals("3") | rankingMethodString.equals("exit"))){
+				System.out.println("Invalid input");
+				continue;
+			}
 
-			Scanner userScanner = new Scanner(System.in);
-
-            String userInput = "1";
-			while (userInput.equals("1") || userInput.equals("2")){
-				float total = 0;
-				float correct = 0;
-
-				System.out.println("Enter the following commands to choose a ranking method -\n" + 
-						"\tEnter 1 for tf-idf\n" + 
-						"\tEnter 2 for BM25\n" + 
-						"\tEnter anything else to exit");
-				userInput = userScanner.nextLine();
-				if (! (userInput.equals("1") || userInput.equals("2"))){
-					System.out.println("***************** Thanks for using the program! *****************\n");
-					userScanner.close();
-					break;
+			// ask about stop words if BM25 was not chosen 
+			String stopWordString = "";
+			if (!rankingMethodString.equals("3")){
+				while(!(stopWordString.equals("1") | stopWordString.equals("2"))){
+					System.out.println("Include stop words? - \n" + 
+						"\tEnter 1 to include\n" + 
+						"\tEnter 2 to not");
+						stopWordString = userScanner.nextLine();
 				}
+			} else {
+				stopWordString = "1";
+			}
+
+			// if they chose BM25, ask which hyperparameters they would wish to see. 
+			String hyperParamString = "";
+			if (rankingMethodString.equals("3")){
+				while ( !( hyperParamString.equals("1") | hyperParamString.equals("2") 
+					     | hyperParamString.equals("3") | hyperParamString.equals("4")
+					     | hyperParamString.equals("5") ) ){
+					System.out.println("Since you chose BM25, choose from the following commands for the hyperparameters -\n" + 
+						"\tEnter 1 to choose default parameters\n"+
+						"\tEnter 2 to have k1 = 4, b = .25\n" + 
+						"\tEnter 3 to have k1 = 2, b = .5\n" + 
+						"\tEnter 4 to have k1 = 2, b = .25\n" + 
+						"\tEnter 5 to have k1 = 2, b = .0");
+					hyperParamString = userScanner.nextLine();
+				}
+			}
 
 
-				File file = objQueryEngine.openDataFile("query.csv");
-				Scanner myReader = new Scanner(new BufferedReader(new FileReader(file)));
-				myReader.nextLine();
-				while (myReader.hasNextLine()) {
+			// set up the standardAnalyzer, queryEngine, along with the parameters to pass into queryController
+			int rankingMethod = Integer.parseInt(rankingMethodString); // shift down
+			int stopWord = Integer.parseInt(stopWordString);
+			int k = 0; 
+			float b = 0;
+			if (rankingMethod == 3){
+				int hyperParam = Integer.parseInt(hyperParamString);
+				if (hyperParam == 2){k = 4; b = 0.25f;}
+				if (hyperParam == 3){k = 2; b = 0.5f;}
+				if (hyperParam == 4){k = 2; b = 0.25f;}
+				if (hyperParam == 5){k = 2;}
+			}
+			// set up stop words 
+			if (stopWord == 1){
+				changeStandardAnalyzer(true);
+				System.out.println("stop work = " + stopWord);
+				System.out.println("ranking method = " + rankingMethod);
+			} else {
+				changeStandardAnalyzer(false);
+				System.out.println("stop work = " + stopWord);
+				System.out.println("ranking method = " + rankingMethod);
+			}
+
+			
+			QueryEngine objQueryEngine = new QueryEngine();
+			queryController(objQueryEngine, rankingMethod, k, b, true);
+		}
+    }
+
+
+	/*
+	 * Method: QueryController 
+	 * Purpose: iterates through the query.csv file where upon each iteration takes a line/query 
+	 * 			from the query.csv file and runs this line in runquery. 
+	 * Parameters: objQueryEngine - QueryEngine object we are using to run queries  
+	 * 			   rankingMethod - the ranking method to be used. tfidf if 2, BM25 if 3
+	 * 			   k - the k1 hyperparameter for BM25
+	 * 			   b - the b hyperparameter for BM25
+	 * 			   printQueryInfo - boolean if we want to print each of the individual queries
+	 * return: float of the amount of ( correct queries / total queries made )
+	 */
+	public static float queryController(QueryEngine objQueryEngine, int rankingMethod, int k, float b, boolean printQueriesInfo){
+		float resultPercentage = 0;
+		try{
+			float total = 0;
+			float correct = 0;
+
+			File file = objQueryEngine.openDataFile("query.csv");
+			Scanner myReader = new Scanner(new BufferedReader(new FileReader(file)));
+			myReader.nextLine();
+			while (myReader.hasNextLine()) {
+				
+				String data = myReader.nextLine();
+				if (data.length() > 3) {
+					String troll = data.substring(data.length()-1, data.length());
+					String[] query = normalizeQuery((data.substring(0, data.length()-2)).split(" "));
 					
-					String data = myReader.nextLine();
-					if (data.length() > 3) {
-						String troll = data.substring(data.length()-1, data.length());
-						String[] query = normalizeQuery((data.substring(0, data.length()-2)).split(" "));
-						
-						if (query.length > 1 && (troll.equals("0") || troll.equals("1"))) {
-							total += 1;
-							String[] answer = runQuery(query, userInput);
-							
+					if (query.length > 1 && (troll.equals("0") || troll.equals("1"))) {
+						total += 1;
+						String[] answer = runQuery(query, rankingMethod, k, b);
+
+						if (printQueriesInfo){
 							System.out.println("Query " + (int) (total));
 							System.out.println("Query = " + String.join(" ", query) + " (Troll Query: " + troll +
-									")\nTop Result = " + answer[0] + " (Troll Result: " +answer[1]+ ")\n");
-							
-							
-							if (answer[1] != null) {
-								if (answer[1].equals(troll))
-									correct +=1;
-							}      
+								")\nTop Result = " + answer[0] + " (Troll Result: " +answer[1]+ ")\n");
 						}
+						
+						if (answer[1] != null) {
+							if (answer[1].equals(troll))
+								correct +=1;
+						}      
 					}
 				}
+			}
+			resultPercentage = correct / total;
+			if (printQueriesInfo){
 				System.out.println("total = " + (int) total + " Correct = " + (int) correct);
-				System.out.println(correct/total);
-				myReader.close();
-			}    
-            userScanner.close();
-        }
+				System.out.println(resultPercentage);
+				System.out.println();
+			}
+			myReader.close();   
+		}
         catch (Exception ex) {
             System.out.println(ex.getMessage());
 			System.out.println("An error occurred.");
 			ex.printStackTrace();
         }
-    }
+		return resultPercentage;
+	}
+
+	/*
+	 * Method: runAll
+	 * Purpose: This method runs a set of query runs.
+	 * Paremeters: None
+	 * Returns: none
+	 */
+	public static void runAll(){
+
+		QueryEngine objQueryEngine1 = new QueryEngine();
+		changeStandardAnalyzer(true);
+		float tfidfStopWords = queryController(objQueryEngine1, 2, 0, 0, false);
+		QueryEngine objQueryEngine2 = new QueryEngine();
+		float BM25DefStopWords = queryController(objQueryEngine2, 3, 0, 0, false);
+		QueryEngine objQueryEngine3 = new QueryEngine();
+		float BM25k4b25 = queryController(objQueryEngine3, 3, 4, 0.25f, false);
+		QueryEngine objQueryEngine4 = new QueryEngine();
+		float BM25k2b5 = queryController(objQueryEngine4, 3, 2, 0.5f, false);
+		QueryEngine objQueryEngine5 = new QueryEngine();
+		float BM25k2b25 = queryController(objQueryEngine5, 3, 2, 0.25f, false);
+		QueryEngine objQueryEngine6 = new QueryEngine();
+		float BM25k2b0 = queryController(objQueryEngine6, 3, 2, 0, false);
+
+		changeStandardAnalyzer(false);
+		QueryEngine objQueryEngine7 = new QueryEngine();
+		float tfidfNoStopWords = queryController(objQueryEngine7, 2, 0, 0, false);
+		QueryEngine objQueryEngine8 = new QueryEngine();
+		float BM25DefNoStopWords = queryController(objQueryEngine8, 3, 0, 0, false);
+		
+		System.out.println("BM25(default hyperparameters) stop words indexed: \t" + BM25DefStopWords);
+		System.out.println("BM25(default hyperparameters) no stop words indexed: \t" + BM25DefNoStopWords);
+		System.out.println("tf-idf stop words\t" + tfidfStopWords);
+		System.out.println("tf-idf no stop words\t" + tfidfNoStopWords);
+		System.out.println("BM25 k1 = 4, b = .25 (stop words indexed)\t" + BM25k4b25);
+		System.out.println("BM25 k1 = 2, b = .5 (stop words indexed)\t" + BM25k2b5);
+		System.out.println("BM25 k1 = 2, b = .25 (stop words indexed)\t" + BM25k2b25);
+		System.out.println("BM25 k1 = 2, b = .0 (stop words indexed)\t" + BM25k2b0);
+		System.out.println();
+	}
 
     /*
     This method runs a query for a single tweet.
@@ -209,7 +334,7 @@ public class QueryEngine {
     We changed the hyper parameters for BM25 to k1 = 2 and b = 0 as this 
     yielded the highest correct percentage
     */
-    public static String[] runQuery(String[] query, String rankingMethod) throws java.io.FileNotFoundException,java.io.IOException {
+    public static String[] runQuery(String[] query, int rankingMethod, int k, float b) throws java.io.FileNotFoundException,java.io.IOException {
         
         //creates query with query terms separated by a space        
         String[] top = new String[2];
@@ -221,12 +346,15 @@ public class QueryEngine {
 	        IndexReader reader = DirectoryReader.open(index);
 	        IndexSearcher searcher = new IndexSearcher(reader);
 		
-			if (rankingMethod.equals("1")){
+			if (rankingMethod == 2){
 				searcher.setSimilarity(new ClassicSimilarity());
-			}	
-			else
-			    searcher.setSimilarity(new BM25Similarity(2, 0));
-
+			} 	
+			else{
+				if (k == 0 && b == 0) // default
+			    	searcher.setSimilarity(new BM25Similarity());
+				else 
+					searcher.setSimilarity(new BM25Similarity(k, b));
+			}
 	        TopDocs docs = searcher.search(q, hitsPerPage);
 	        ScoreDoc[] hits = docs.scoreDocs;
 			
@@ -266,4 +394,19 @@ public class QueryEngine {
 		return returnarr;
 	}
 
+
+	/*
+	 * Method: changeStandardAnalyzer()
+	 * Purpose: Changes the standard analyzer to either include or not include stop words
+	 * Parameter: includeStopWords - boolean for if we want to include stop words. 
+	 * returns: void
+	 */
+	private static void changeStandardAnalyzer(boolean includeStopWords){
+		if (includeStopWords){
+			CharArraySet keepStopWords = null;
+			analyzer = new StandardAnalyzer(keepStopWords);
+		} else {
+			analyzer = new StandardAnalyzer();
+		}
+	}
 }
