@@ -192,6 +192,7 @@ public class QueryEngine {
 				}
 			} else {
 				stopWordString = "1";
+				System.out.println("askjdflkasjdlfkjasldkfjalskdjflkasdjlfasjdlfkjasldkfalskdfjlkasdjflkasjflkasjdfjasldkfjalsdkflasdfjlaskjdflaksdjflaksdflajdkf");
 			}
 
 
@@ -236,7 +237,7 @@ public class QueryEngine {
 				stop = true;
 			else 
 				stop = false; 
-			changeStandardAnalyzer(stem, stop);
+			changeStandardAnalyzer(stop, stem);
 
 			
 			QueryEngine objQueryEngine = new QueryEngine();
@@ -289,7 +290,7 @@ public class QueryEngine {
 					}
 				}
 			}
-			resultPercentage = correct / total;
+			resultPercentage = (correct / total) * 100;
 			if (printQueriesInfo){
 				System.out.println("total = " + (int) total + " Correct = " + (int) correct);
 				System.out.println(resultPercentage);
@@ -312,9 +313,11 @@ public class QueryEngine {
 	 * Returns: none
 	 */
 	public static void runAll(){
-
-		QueryEngine objQueryEngine1 = new QueryEngine();
+		System.out.println("\nLoading... :D");
+		System.out.println("Query type\t\t\t\tPercentage");
+		System.out.println("------------------------------------------------------------");
 		changeStandardAnalyzer(true, false);
+		QueryEngine objQueryEngine1 = new QueryEngine();
 		float tfidfStopWords = queryController(objQueryEngine1, 2, 0, 0, false);
 		QueryEngine objQueryEngine2 = new QueryEngine();
 		float BM25DefStopWords = queryController(objQueryEngine2, 3, 0, 0, false);
@@ -354,8 +357,6 @@ public class QueryEngine {
 		QueryEngine engQueryEngine8 = new QueryEngine();
 		float engBM25DefNoStopWords = queryController(engQueryEngine8, 3, 0, 0, false);
 
-
-		
 		System.out.println("BM25(default hyperparameters) stop words indexed: \t" + BM25DefStopWords);
 		System.out.println("BM25(default hyperparameters) no stop words indexed: \t" + BM25DefNoStopWords);
 		System.out.println("tf-idf stop words\t" + tfidfStopWords);
