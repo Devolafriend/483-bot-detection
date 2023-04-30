@@ -1,0 +1,5 @@
+keras==2.12.0
+matplotlib==3.7.1
+nltk==3.8.1
+tensorflow==2.12.0
+tensorflow_intel==2.12.0
