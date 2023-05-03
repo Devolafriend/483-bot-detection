@@ -15,6 +15,8 @@ we explained the reasoning for this in the accompanying pdf.
 package final_project;
 
 import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.StopwordAnalyzerBase;
+import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -53,9 +55,9 @@ public class QueryEngine {
     boolean indexExists=false;
     static Directory index;
     //list of stop words to be excluded from the index (we set this to none)
-    private static final CharArraySet noStopWords = null;
+    private static final CharArraySet keepStopWords = null;
     //the analyzer will include ALL stop words in the index
-    static StandardAnalyzer analyzer = new StandardAnalyzer(noStopWords);
+    static StopwordAnalyzerBase analyzer = new StandardAnalyzer(keepStopWords);
 
 	
     /* Constructor for QueryEngine.
@@ -169,6 +171,16 @@ public class QueryEngine {
 				continue;
 			}
 
+
+			// ask about stemming
+			String stemmingString = ""; 
+			while (!(stemmingString.equals("1") | stemmingString.equals("2"))){
+				System.out.println("Choose whether or not to include stemming - \n" + 
+									"\tEnter 1 to include stemming\n" + 
+									"\tEnter 2 to not include stemming");
+				stemmingString = userScanner.nextLine();
+			}
+
 			// ask about stop words if BM25 was not chosen 
 			String stopWordString = "";
 			if (!rankingMethodString.equals("3")){
@@ -180,7 +192,9 @@ public class QueryEngine {
 				}
 			} else {
 				stopWordString = "1";
+				System.out.println("askjdflkasjdlfkjasldkfjalskdjflkasdjlfasjdlfkjasldkfalskdfjlkasdjflkasjflkasjdfjasldkfjalsdkflasdfjlaskjdflaksdjflaksdflajdkf");
 			}
+
 
 			// if they chose BM25, ask which hyperparameters they would wish to see. 
 			String hyperParamString = "";
@@ -198,10 +212,10 @@ public class QueryEngine {
 				}
 			}
 
-
 			// set up the standardAnalyzer, queryEngine, along with the parameters to pass into queryController
 			int rankingMethod = Integer.parseInt(rankingMethodString); // shift down
 			int stopWord = Integer.parseInt(stopWordString);
+			int stemming = Integer.parseInt(stemmingString);
 			int k = 0; 
 			float b = 0;
 			if (rankingMethod == 3){
@@ -211,16 +225,19 @@ public class QueryEngine {
 				if (hyperParam == 4){k = 2; b = 0.25f;}
 				if (hyperParam == 5){k = 2;}
 			}
-			// set up stop words 
-			if (stopWord == 1){
-				changeStandardAnalyzer(true);
-				System.out.println("stop work = " + stopWord);
-				System.out.println("ranking method = " + rankingMethod);
-			} else {
-				changeStandardAnalyzer(false);
-				System.out.println("stop work = " + stopWord);
-				System.out.println("ranking method = " + rankingMethod);
-			}
+
+			// set up stop words and stemming exclusion/exclusion. 
+			boolean stem = false;
+			boolean stop = false; 
+			if (stemming == 1)
+				stem = true; 
+			else 
+				stem = false; 
+			if (stopWord == 1)
+				stop = true;
+			else 
+				stop = false; 
+			changeStandardAnalyzer(stop, stem);
 
 			
 			QueryEngine objQueryEngine = new QueryEngine();
@@ -273,7 +290,7 @@ public class QueryEngine {
 					}
 				}
 			}
-			resultPercentage = correct / total;
+			resultPercentage = (correct / total) * 100;
 			if (printQueriesInfo){
 				System.out.println("total = " + (int) total + " Correct = " + (int) correct);
 				System.out.println(resultPercentage);
@@ -296,9 +313,11 @@ public class QueryEngine {
 	 * Returns: none
 	 */
 	public static void runAll(){
-
+		System.out.println("\nLoading... :D");
+		System.out.println("Query type\t\t\t\tPercentage");
+		System.out.println("------------------------------------------------------------");
+		changeStandardAnalyzer(true, false);
 		QueryEngine objQueryEngine1 = new QueryEngine();
-		changeStandardAnalyzer(true);
 		float tfidfStopWords = queryController(objQueryEngine1, 2, 0, 0, false);
 		QueryEngine objQueryEngine2 = new QueryEngine();
 		float BM25DefStopWords = queryController(objQueryEngine2, 3, 0, 0, false);
@@ -311,12 +330,33 @@ public class QueryEngine {
 		QueryEngine objQueryEngine6 = new QueryEngine();
 		float BM25k2b0 = queryController(objQueryEngine6, 3, 2, 0, false);
 
-		changeStandardAnalyzer(false);
+		changeStandardAnalyzer(false, false);
 		QueryEngine objQueryEngine7 = new QueryEngine();
 		float tfidfNoStopWords = queryController(objQueryEngine7, 2, 0, 0, false);
 		QueryEngine objQueryEngine8 = new QueryEngine();
 		float BM25DefNoStopWords = queryController(objQueryEngine8, 3, 0, 0, false);
-		
+
+		// change from standard analyzer to EnglishAnalyzer. Use KeepStopWords 
+		changeStandardAnalyzer(true, true);
+		QueryEngine engQueryEngine1 = new QueryEngine();
+		float engtfidfStopWords = queryController(engQueryEngine1, 2, 0, 0, false);
+		QueryEngine engQueryEngine2 = new QueryEngine();
+		float engBM25DefStopWords = queryController(engQueryEngine2, 3, 0, 0, false);
+		QueryEngine engQueryEngine3 = new QueryEngine();
+		float engBM25k4b25 = queryController(engQueryEngine3, 3, 4, 0.25f, false);
+		QueryEngine engQueryEngine4 = new QueryEngine();
+		float engBM25k2b5 = queryController(engQueryEngine4, 3, 2, 0.5f, false);
+		QueryEngine engQueryEngine5 = new QueryEngine();
+		float engBM25k2b25 = queryController(engQueryEngine5, 3, 2, 0.25f, false);
+		QueryEngine engQueryEngine6 = new QueryEngine();
+		float engBM25k2b0 = queryController(engQueryEngine6, 3, 2, 0, false);
+
+		changeStandardAnalyzer(false, true);
+		QueryEngine engQueryEngine7 = new QueryEngine();
+		float engtfidfNoStopWords = queryController(engQueryEngine7, 2, 0, 0, false);
+		QueryEngine engQueryEngine8 = new QueryEngine();
+		float engBM25DefNoStopWords = queryController(engQueryEngine8, 3, 0, 0, false);
+
 		System.out.println("BM25(default hyperparameters) stop words indexed: \t" + BM25DefStopWords);
 		System.out.println("BM25(default hyperparameters) no stop words indexed: \t" + BM25DefNoStopWords);
 		System.out.println("tf-idf stop words\t" + tfidfStopWords);
@@ -325,6 +365,16 @@ public class QueryEngine {
 		System.out.println("BM25 k1 = 2, b = .5 (stop words indexed)\t" + BM25k2b5);
 		System.out.println("BM25 k1 = 2, b = .25 (stop words indexed)\t" + BM25k2b25);
 		System.out.println("BM25 k1 = 2, b = .0 (stop words indexed)\t" + BM25k2b0);
+		System.out.println();
+
+		System.out.println("stemming - BM25(default hyperparameters) stop words indexed: \t" + engBM25DefStopWords);
+		System.out.println("stemming - BM25(default hyperparameters) no stop words indexed: \t" + engBM25DefNoStopWords);
+		System.out.println("stemming - tf-idf stop words\t" + engtfidfStopWords);
+		System.out.println("stemming - tf-idf no stop words\t" + engtfidfNoStopWords);
+		System.out.println("stemming - BM25 k1 = 4, b = .25 (stop words indexed)\t" + engBM25k4b25);
+		System.out.println("stemming - BM25 k1 = 2, b = .5 (stop words indexed)\t" + engBM25k2b5);
+		System.out.println("stemming - BM25 k1 = 2, b = .25 (stop words indexed)\t" + engBM25k2b25);
+		System.out.println("stemming - BM25 k1 = 2, b = .0 (stop words indexed)\t" + engBM25k2b0);
 		System.out.println();
 	}
 
@@ -399,14 +449,22 @@ public class QueryEngine {
 	 * Method: changeStandardAnalyzer()
 	 * Purpose: Changes the standard analyzer to either include or not include stop words
 	 * Parameter: includeStopWords - boolean for if we want to include stop words. 
+	 * 			  stemming - boolean for if we want to stem or not
 	 * returns: void
 	 */
-	private static void changeStandardAnalyzer(boolean includeStopWords){
-		if (includeStopWords){
-			CharArraySet keepStopWords = null;
-			analyzer = new StandardAnalyzer(keepStopWords);
+	private static void changeStandardAnalyzer(boolean includeStopWords, boolean stemming){
+		if (stemming){
+			if (includeStopWords){
+				analyzer = new EnglishAnalyzer(keepStopWords);
+			} else {
+				analyzer = new EnglishAnalyzer();
+			}
 		} else {
-			analyzer = new StandardAnalyzer();
+			if (includeStopWords){
+				analyzer = new StandardAnalyzer(keepStopWords);
+			} else {
+				analyzer = new StandardAnalyzer();
+			}
 		}
 	}
 }
