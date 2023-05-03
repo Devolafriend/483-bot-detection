@@ -5,11 +5,13 @@ import shutil
 import string
 import sys
 import tensorflow as tf
+import model_eval
 
 
 from tensorflow.keras import layers
 from tensorflow.keras import losses
 from keras.callbacks import EarlyStopping
+from nltk.corpus import stopwords
 
 
 
@@ -22,14 +24,15 @@ sequence_length = 250
 embedding_dim = 16
 TOTAL_EPOCHS = 100
 
+REMOVE_STOPWORDS = False
+
 AUTOTUNE = tf.data.AUTOTUNE
 
 def custom_standardization(data):
-    print(data)
     lowercase = tf.strings.lower(data)
     # TODO: Remove stopwords
-    print(lowercase)
-    
+    if REMOVE_STOPWORDS:
+        lowercase = tf.strings.regex_replace(lowercase, r'\b(' + r'|'.join(stopwords.words('english')) + r')\b\s*',"")
     return tf.strings.regex_replace(lowercase, '[%s]' % re.escape(string.punctuation), '')
 
 
@@ -55,13 +58,25 @@ def create_model():
     layers.Dense(1)])
     model.summary()
 
-    model.compile(loss=losses.BinaryCrossentropy(from_logits=True),
-                optimizer='adam',
-                metrics=tf.metrics.BinaryAccuracy(threshold=0.0))
+
+
+    model.compile(
+        optimizer='adam',
+        loss="binary_crossentropy",
+        metrics=[tf.metrics.BinaryAccuracy(threshold=0.0), 
+                    model_eval.f1_m, model_eval.precision_m, model_eval.recall_m]
+    )
 
     return model
 
 def main(args):
+    if "--remove-stopwords" in args:
+        global REMOVE_STOPWORDS
+        REMOVE_STOPWORDS = True
+        print("Removing stopwords")
+    train(args)
+
+def train(args):
     raw_train_ds, raw_val_ds, raw_test_ds = get_data()
     print("Label 0 corresponds to", raw_train_ds.class_names[0])
     print("Label 1 corresponds to", raw_train_ds.class_names[1])
@@ -86,13 +101,14 @@ def main(args):
         callbacks=[early_stop],
         epochs=TOTAL_EPOCHS)
 
-    loss, accuracy = model.evaluate(test_ds)
+
+    loss, accuracy, f1_score, precision, recall = model.evaluate(test_ds)
 
     print("Loss: ", loss)
     print("Accuracy: ", accuracy)
-
-
-    # TODO: Decide what to do with this
+    print("F1 Score: ", f1_score)
+    print("Precision: ", precision)
+    print("Recall: ", recall)
 
     history_dict = history.history
     history_dict.keys()
@@ -140,21 +156,21 @@ def main(args):
 
 def get_data():
     raw_train_ds = tf.keras.preprocessing.text_dataset_from_directory(
-        'data/train',
+        'python/data/train',
         batch_size=batch_size,
         validation_split=0.2,
         subset='training',
         seed=seed)
 
     raw_val_ds = tf.keras.preprocessing.text_dataset_from_directory(
-        'data/train',
+        'python/data/train',
         batch_size=batch_size,
         validation_split=0.2,
         subset='validation',
         seed=seed)
 
     raw_test_ds = tf.keras.preprocessing.text_dataset_from_directory(
-        'data/test',
+        'python/data/test',
         batch_size=batch_size)
     
     return raw_train_ds, raw_val_ds, raw_test_ds

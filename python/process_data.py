@@ -1,6 +1,8 @@
 import os
 import random
 from utils import normalize_text
+from os import path
+import sys
 
 def remove_dir_files(path):
     for file in os.listdir(path):
@@ -23,9 +25,20 @@ def open_file(file_path):
     file.close()
     return lines
 
-def main():
-    print("Processing data...")
-    lines = open_file("data.csv")
+def main_process_data(args):
+    remove = True if "--remove-stopwords" in args else False
+    lemmatize = True if "--lemmatize" in args else False
+    if remove:
+        print("Removing stopwords")
+    if lemmatize:
+        print("Lemmatizing")
+    process(remove, lemmatize)
+
+    
+
+def process(remove_stopwords=False, lemmatize=False):
+    cwd_path = path.dirname(path.realpath(__file__))
+    lines = open_file(path.join(cwd_path, "data.csv"))
     bot = []
     human = []
     print("Total lines: ", len(lines))
@@ -37,9 +50,9 @@ def main():
         if (len(line) <= 1):
             continue
         if line[-1] == "1":
-            bot.append(normalize_text(" ".join(line[:-1])))
+            bot.append(normalize_text(" ".join(line[:-1]), remove_stopwords, lemmatize))
         elif line[-1] == "0":
-            human.append(normalize_text(" ".join(line[:-1])))
+            human.append(normalize_text(" ".join(line[:-1]), remove_stopwords, lemmatize))
         else:
             pass
         i += 1
@@ -78,7 +91,7 @@ def main():
 
     # Clear bot and human directories
 
-    data_path = os.path.join("data")
+    data_path = path.join(cwd_path, "data")
     test_dir = os.path.join(data_path, "test")
     train_dir = os.path.join(data_path, "train")
 
@@ -93,5 +106,4 @@ def main():
     update_dir(human_test_path, human_test, "human test")
         
 if __name__ == "__main__":
-    print("HERE")
-    main()
+    main_process_data(sys.argv[1:])
