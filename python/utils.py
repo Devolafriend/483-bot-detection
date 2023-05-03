@@ -9,6 +9,10 @@ nltk.download('wordnet')
 lemmatizer = WordNetLemmatizer()
 
 def normalize_text(text, remove_stopwords=False, lemmatize=False):
+    """
+        Normalizes text by removing stopwords and lemmatizing words based on the
+        arguments passed in
+    """
     text = text.lower()
 
     words = text.split()

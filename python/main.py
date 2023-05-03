@@ -12,8 +12,14 @@ from tensorflow.keras import layers
 from tensorflow.keras import losses
 from keras.callbacks import EarlyStopping
 from nltk.corpus import stopwords
+"""
+    Main file for training the model
+    Takes in the following arguments:
+        --remove-stopwords: Removes stopwords from the dataset (default: False)
+"""
 
 
+# Global variables used to create the model
 
 batch_size = 32
 seed = 42
@@ -29,8 +35,10 @@ REMOVE_STOPWORDS = False
 AUTOTUNE = tf.data.AUTOTUNE
 
 def custom_standardization(data):
+    """
+        Custom standardization function to remove punctuation and lowercase words
+    """
     lowercase = tf.strings.lower(data)
-    # TODO: Remove stopwords
     if REMOVE_STOPWORDS:
         lowercase = tf.strings.regex_replace(lowercase, r'\b(' + r'|'.join(stopwords.words('english')) + r')\b\s*',"")
     return tf.strings.regex_replace(lowercase, '[%s]' % re.escape(string.punctuation), '')
@@ -38,7 +46,9 @@ def custom_standardization(data):
 
 
 def format_dataset(raw_train_ds, raw_val_ds, raw_test_ds):
-
+    """
+        Grab the text and label from the dataset and vectorize the text 
+    """
     train_ds = raw_train_ds.map(vectorize_text)
     val_ds = raw_val_ds.map(vectorize_text)
     test_ds = raw_test_ds.map(vectorize_text)
@@ -57,8 +67,6 @@ def create_model():
     layers.Dropout(0.2),
     layers.Dense(1)])
     model.summary()
-
-
 
     model.compile(
         optimizer='adam',
@@ -85,31 +93,39 @@ def train(args):
     # Make a text-only dataset (without labels), then call adapt
     train_text = raw_train_ds.map(lambda x, y: x)
     vectorize_layer.adapt(train_text)
-    
     train_ds, val_ds, test_ds = format_dataset(raw_train_ds, raw_val_ds, raw_test_ds)    
 
     model = create_model()
 
-
-    early_stop = EarlyStopping(monitor='val_loss', mode="max", patience=10, restore_best_weights=True)
+    # Function that stops running to prevent overfitting
+    early_stop = EarlyStopping(
+        monitor='val_loss', 
+        min_delta=0,
+        mode="auto", 
+        patience=10, 
+        restore_best_weights=True
+    )
 
     print("Starting training")
 
+    # Train and evaluate the model
     history = model.fit(
         train_ds,
         validation_data=val_ds,
         callbacks=[early_stop],
         epochs=TOTAL_EPOCHS)
 
-
     loss, accuracy, f1_score, precision, recall = model.evaluate(test_ds)
 
+    print("Results:")
     print("Loss: ", loss)
     print("Accuracy: ", accuracy)
     print("F1 Score: ", f1_score)
     print("Precision: ", precision)
     print("Recall: ", recall)
+    print()
 
+    # Plot the accuracy and loss over time
     history_dict = history.history
     history_dict.keys()
 
@@ -120,15 +136,13 @@ def train(args):
 
     epochs = range(1, len(acc) + 1)
 
-    # "bo" is for "blue dot"
+    # Create plots of accuracy and loss over time
     plt.plot(epochs, loss, 'bo', label='Training loss')
-    # b is for "solid blue line"
     plt.plot(epochs, val_loss, 'b', label='Validation loss')
     plt.title('Training and validation loss')
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.legend()
-
     plt.show()
 
     plt.plot(epochs, acc, 'bo', label='Training acc')
@@ -137,21 +151,7 @@ def train(args):
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
     plt.legend(loc='lower right')
-
     plt.show()
-
-    export_model = tf.keras.Sequential([
-    vectorize_layer,
-    model,
-    layers.Activation('sigmoid')
-    ])
-
-    export_model.compile(
-        loss=losses.BinaryCrossentropy(from_logits=False), optimizer="adam", metrics=['accuracy']
-    )
-
-
-
 
 
 def get_data():

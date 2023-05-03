@@ -5,10 +5,16 @@ from os import path
 import sys
 
 def remove_dir_files(path):
+    """ 
+    Removes all files in the directory
+    """
     for file in os.listdir(path):
         os.remove(os.path.join(path, file))
 
 def update_dir(path, data, msg=""):
+    """ 
+    Updates the directory with the data saved in individual files
+    """
     remove_dir_files(path)
     for i in range(len(data)):
         file = open(os.path.join(path, str(i) + ".txt"), "w")
@@ -44,6 +50,7 @@ def process(remove_stopwords=False, lemmatize=False):
     print("Total lines: ", len(lines))
     max = len(lines)
     i = 0
+    # Add normalized text to bot and human lists
     for raw_line in lines:
         line = raw_line.strip().split(",")
         line = line
@@ -59,10 +66,6 @@ def process(remove_stopwords=False, lemmatize=False):
         if (i % 1000 == 0):
             print(f"{i}/{max}")
      
-    # Print first 10 line of each
-    print("Bot: ", bot[:10])
-    print("Human: ", human[:10])    
-
     print("Bot: ", len(bot))
     print("Human: ", len(human))
     print("Total: ", len(bot) + len(human))
@@ -72,7 +75,7 @@ def process(remove_stopwords=False, lemmatize=False):
     VALIDATION_PERCENT = 0.2
     TESTING_PERCENT = 0.1
 
-    # Set random seed
+    # Set random seed for reproducibility
     random.seed(42)
 
     # Shuffle data
